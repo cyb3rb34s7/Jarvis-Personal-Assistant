@@ -1,0 +1,34 @@
+# JARVIS Configuration
+# Edit this file to customize your assistant
+
+# LLM Model settings
+model:
+  name: qwen2.5:7b-instruct
+  temperature: 0.7
+
+# Voice settings
+voice:
+  # Speech-to-text (Whisper)
+  stt_model: large-v3-turbo    # Options: tiny, base, small, medium, large-v3, large-v3-turbo
+  stt_language: hi              # 'hi' for Hinglish, 'en' for English only
+  stt_device: cuda              # 'cuda' for GPU, 'cpu' for CPU
+
+  # Text-to-speech (Kokoro)
+  tts_voice: af_heart           # Voice style
+  tts_speed: 1.0                # Speech speed (0.5 - 2.0)
+
+  # Push-to-talk hotkey
+  hotkey: ctrl+space
+
+# MCP (Model Context Protocol) settings
+mcp:
+  enabled: false                # Set true to always load MCP tools
+  config_path: data/mcp_servers.json
+
+# Data storage paths
+notes_dir: data/notes
+reminders_file: data/reminders.json
+
+# Debugging
+verbose: false                  # Enable verbose output
+log_file: null                  # Set path to enable file logging

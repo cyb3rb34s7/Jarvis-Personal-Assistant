@@ -115,6 +115,74 @@ class TextToSpeech:
         """Stop any ongoing speech."""
         sd.stop()
 
+    def synthesize(self, text: str, voice: str = None, speed: float = None) -> bytes:
+        """Synthesize text to WAV audio bytes.
+
+        Args:
+            text: Text to synthesize
+            voice: Voice ID (uses instance default if None)
+            speed: Speech speed (uses instance default if None)
+
+        Returns:
+            WAV audio data as bytes
+        """
+        import io
+        import wave
+
+        if not text.strip():
+            return b""
+
+        voice = voice or self.voice
+        speed = speed or self.speed
+
+        self._ensure_loaded()
+
+        # Collect all audio samples
+        all_audio = []
+
+        try:
+            import re
+            sentences = re.split(r'(?<=[.!?])\s+', text)
+
+            for sentence in sentences:
+                if not sentence.strip():
+                    continue
+
+                # Truncate very long sentences
+                if len(sentence) > 400:
+                    sentence = sentence[:400] + "..."
+
+                # Generate audio
+                audio, sample_rate = self._kokoro.create(
+                    sentence,
+                    voice=voice,
+                    speed=speed
+                )
+                all_audio.append(audio)
+
+            if not all_audio:
+                return b""
+
+            # Concatenate all audio
+            combined = np.concatenate(all_audio)
+
+            # Convert to 16-bit PCM
+            audio_int16 = (combined * 32767).astype(np.int16)
+
+            # Write to WAV bytes
+            buffer = io.BytesIO()
+            with wave.open(buffer, 'wb') as wav:
+                wav.setnchannels(1)
+                wav.setsampwidth(2)  # 16-bit
+                wav.setframerate(SAMPLE_RATE)
+                wav.writeframes(audio_int16.tobytes())
+
+            return buffer.getvalue()
+
+        except Exception as e:
+            print(f"TTS Synthesis Error: {e}")
+            return b""
+
 
 # Global instance
 _tts: Optional[TextToSpeech] = None

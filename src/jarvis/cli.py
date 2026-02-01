@@ -16,7 +16,7 @@ from .utils import format_error_for_user, check_ollama_running
 
 
 # Known subcommands for detection
-SUBCOMMANDS = {"calc", "mcp-status", "ask", "config", "status", "chat", "history"}
+SUBCOMMANDS = {"calc", "mcp-status", "ask", "config", "status", "chat", "history", "serve"}
 
 
 @click.group(invoke_without_command=True)
@@ -423,6 +423,42 @@ def history(limit):
     click.echo("\nResume a conversation:")
     click.echo("  jarvis chat --id <conversation_id>")
     click.echo("  jarvis chat --resume  (resumes most recent)")
+
+
+@cli.command()
+@click.option("--host", "-h", default="0.0.0.0", help="Host to bind to")
+@click.option("--port", "-p", default=8000, help="Port to bind to")
+@click.option("--reload", is_flag=True, help="Enable auto-reload for development")
+def serve(host, port, reload):
+    """Start the JARVIS API server.
+
+    Example:
+        jarvis serve                     # Start on 0.0.0.0:8000
+        jarvis serve -p 3000             # Start on port 3000
+        jarvis serve --reload            # Start with auto-reload
+    """
+    try:
+        import uvicorn
+    except ImportError:
+        click.echo("Error: API dependencies not installed. Run: pip install jarvis[api]")
+        return
+
+    click.echo("\n" + "=" * 50)
+    click.echo("  JARVIS API Server")
+    click.echo("=" * 50)
+    click.echo(f"\n  Starting on http://{host}:{port}")
+    click.echo(f"  API docs: http://{host}:{port}/docs")
+    click.echo(f"  Reload: {'Enabled' if reload else 'Disabled'}")
+    click.echo("\n  Press Ctrl+C to stop")
+    click.echo("=" * 50 + "\n")
+
+    uvicorn.run(
+        "jarvis.api.main:create_app",
+        host=host,
+        port=port,
+        reload=reload,
+        factory=True,
+    )
 
 
 def main():

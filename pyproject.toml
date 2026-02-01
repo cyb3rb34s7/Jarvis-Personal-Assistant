@@ -27,9 +27,17 @@ voice = [
     "kokoro-onnx>=0.4",
     "sounddevice>=0.4",
     "pynput>=1.7",
+    "librosa>=0.10",
+]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "websockets>=14.0",
+    "python-multipart>=0.0.18",
 ]
 full = [
     "jarvis[voice]",
+    "jarvis[api]",
     "pyyaml>=6.0",
     "pydantic>=2.0",
     "httpx>=0.27",

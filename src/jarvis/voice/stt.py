@@ -133,6 +133,44 @@ class SpeechRecognizer:
         text = " ".join(segment.text for segment in segments).strip()
         return text
 
+    def transcribe_file(self, file_path: str, language: str = None) -> str:
+        """Transcribe audio from a file.
+
+        Args:
+            file_path: Path to audio file (WAV, MP3, WEBM, etc.)
+            language: Language code (uses instance default if None)
+
+        Returns:
+            Transcribed text
+        """
+        import librosa
+
+        language = language or self.language
+
+        # Load audio file and resample to expected rate
+        audio, _ = librosa.load(file_path, sr=self.sample_rate, mono=True)
+
+        # Transcribe
+        segments, info = self.model.transcribe(
+            audio,
+            language=language,
+            beam_size=5,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=500)
+        )
+
+        # Combine all segments
+        text = " ".join(segment.text for segment in segments).strip()
+        return text
+
+
+def get_stt() -> SpeechRecognizer:
+    """Get or create the global speech recognizer.
+
+    Alias for get_recognizer() for API consistency.
+    """
+    return get_recognizer()
+
 
 # Global instance for convenience
 _recognizer: Optional[SpeechRecognizer] = None

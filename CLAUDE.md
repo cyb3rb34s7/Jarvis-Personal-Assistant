@@ -125,4 +125,4 @@ When logging to CHANGELOG:
 
 ---
 
-*Last Updated: January 29, 2026*
+*Last Updated: February 1, 2026*

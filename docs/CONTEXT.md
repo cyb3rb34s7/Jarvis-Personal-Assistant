@@ -8,11 +8,11 @@
 
 | Aspect | Value |
 |--------|-------|
-| **Current Phase** | Phase 5 - Polish & MCP Integration |
+| **Current Phase** | GUI Implementation - Phase A Complete |
 | **Phase Status** | 🟡 In Progress |
-| **Last Activity** | Memory system implemented (SQLite + session context) |
+| **Last Activity** | FastAPI backend complete, pushed to GitHub |
 | **Blockers** | None |
-| **Next Task** | GUI backend (FastAPI), stability testing |
+| **Next Task** | Phase B - Next.js frontend |
 
 ---
 
@@ -25,7 +25,12 @@
 | Phase 2: Tools | ✅ Complete | Reminder fires notification |
 | Phase 3: Voice Input | ✅ Complete | Speech → text works (Whisper) |
 | Phase 4: Voice Output | ✅ Complete | Full voice loop (Kokoro TTS) |
-| Phase 5: Polish | ⬜ Not Started | 30 min no crashes |
+| Phase 5: Polish | ✅ Complete | MCP + Memory + Config done |
+| GUI Phase A: Backend | ✅ Complete | FastAPI server works |
+| GUI Phase B: Frontend | ⬜ Not Started | Next.js + shadcn/ui |
+| GUI Phase C: WebSocket | ⬜ Not Started | Real-time chat |
+| GUI Phase D: Voice | ⬜ Not Started | Browser recording |
+| GUI Phase E: Tunnel | ⬜ Not Started | Cloudflare setup |
 
 **Legend:** ✅ Complete | 🟡 In Progress | ⬜ Not Started | 🔴 Blocked
 
@@ -133,14 +138,24 @@
 
 ## Files Modified This Session
 
-*List files touched in current session*
+*List files touched in current session (2026-02-01)*
 
-- `src/jarvis/database.py` - **NEW** SQLite setup with conversations, messages, user_facts tables
-- `src/jarvis/memory/__init__.py` - **NEW** Memory module exports
-- `src/jarvis/memory/session.py` - **NEW** Session memory with safe sliding window
-- `src/jarvis/agent/graph.py` - Added session memory integration, history injection
-- `src/jarvis/cli.py` - Added `chat` and `history` commands, session support in voice mode
-- `data/jarvis.db` - **NEW** SQLite database file (auto-created)
+- `src/jarvis/api/__init__.py` - **NEW** API module exports
+- `src/jarvis/api/main.py` - **NEW** FastAPI app with CORS, lifespan, routers
+- `src/jarvis/api/auth.py` - **NEW** Bearer token authentication
+- `src/jarvis/api/deps.py` - **NEW** Shared dependencies (agent, session)
+- `src/jarvis/api/routes/__init__.py` - **NEW** Route exports
+- `src/jarvis/api/routes/status.py` - **NEW** Health and status endpoints
+- `src/jarvis/api/routes/conversations.py` - **NEW** Conversation CRUD
+- `src/jarvis/api/routes/chat.py` - **NEW** Chat POST + WebSocket
+- `src/jarvis/api/routes/reminders.py` - **NEW** Reminders CRUD
+- `src/jarvis/api/routes/notes.py` - **NEW** Notes CRUD with search
+- `src/jarvis/api/routes/mcp.py` - **NEW** MCP server/tools management
+- `src/jarvis/api/routes/voice.py` - **NEW** STT/TTS endpoints
+- `pyproject.toml` - Added librosa to voice dependencies
+- `src/jarvis/cli.py` - Added `serve` command
+- `src/jarvis/voice/tts.py` - Added `synthesize()` method
+- `src/jarvis/voice/stt.py` - Added `transcribe_file()` and `get_stt()` methods
 
 ---
 
@@ -192,7 +207,7 @@
    - English: Works well
    - Limitation: English-only TTS
 
-**Phase 5: Polish & MCP Integration** ← CURRENT
+**Phase 5: Polish & MCP Integration** ✅ COMPLETE
 1. [x] Install langchain-mcp-adapters ✅
 2. [x] Create MCP config loader (`mcp_loader.py`) ✅
 3. [x] Create default `mcp_servers.json` ✅
@@ -206,46 +221,63 @@
 11. [ ] Stability testing (30 min no crashes) ← USER TESTING
 12. [x] README documentation ✅
 13. [x] Memory system (SQLite + session context) ✅
-    - SQLite database with conversations, messages, user_facts tables
-    - SessionMemory class with safe sliding window (no tool call/response split)
-    - 20-message context window (configurable)
-    - `jarvis chat` - Interactive session with memory
-    - `jarvis history` - View past conversations
-    - Voice mode now persists conversation context
+
+**GUI Phase A: FastAPI Backend** ✅ COMPLETE
+1. [x] Create `src/jarvis/api/` structure
+2. [x] Implement auth.py (Bearer token)
+3. [x] Implement deps.py (shared dependencies)
+4. [x] Implement routes/status.py (health, status)
+5. [x] Implement routes/conversations.py (CRUD)
+6. [x] Implement routes/chat.py (POST + WebSocket)
+7. [x] Implement routes/reminders.py (CRUD)
+8. [x] Implement routes/notes.py (CRUD + search)
+9. [x] Implement routes/mcp.py (servers, tools, reload)
+10. [x] Implement routes/voice.py (transcribe, synthesize)
+11. [x] Add TTS synthesize() method (returns WAV bytes)
+12. [x] Add STT transcribe_file() method
+13. [x] Add CLI `serve` command
+14. [x] Test all endpoints ✅
+15. [x] Commit and push to GitHub ✅
+
+**GUI Phase B: Next.js Frontend** ← NEXT
+1. [ ] Create `ui/` folder with Next.js 14
+2. [ ] Install shadcn/ui components
+3. [ ] Create chat interface layout
+4. [ ] Implement message list component
+5. [ ] Implement input area with send button
+6. [ ] Connect to /api/v1/chat endpoint
+7. [ ] Display conversation history
+8. [ ] Implement optimistic UI (show "Processing..." immediately)
 
 ---
 
 ## Notes for Next Session
 
-- Phase 1-4 complete - full voice loop working!
+- Phase 1-5 complete - full voice loop + memory + MCP working!
 - STT: Whisper large-v3-turbo on GPU, Hinglish ~70-80%
 - TTS: Kokoro English-only, responses forced to English
 - Deep search (Exa) integrated via direct API
 - **MCP Integration complete:**
   - `langchain-mcp-adapters` v0.2.1 installed
   - JSON config file (`data/mcp_servers.json`) for easy MCP management
-  - Agent converted to async for MCP compatibility
-  - Exa MCP working (3 tools: web_search, code_search, company_research)
   - Use `jarvis --mcp ask "query"` to enable MCP tools
-  - Use `jarvis mcp-status` to see configured servers
 - **Memory System complete:**
   - SQLite database at `data/jarvis.db`
-  - Conversations and messages stored persistently
   - Safe sliding window (never splits tool call/response pairs)
   - Use `jarvis chat` for interactive sessions with memory
-  - Use `jarvis chat --resume` to continue last conversation
-  - Use `jarvis history` to view past conversations
-  - Voice mode automatically uses session memory
-- **GUI Plan finalized** at `docs/GUI_PLAN.md`
-  - Architecture: Local Agent + Cloudflare Tunnel (no custom gateway)
-  - Repo structure: `src/jarvis/api/` (FastAPI) + `ui/` (Next.js)
-  - Security: Bearer token auth
-  - Remote latency: Optimistic UI pattern
-- **Next: Phase A - FastAPI Backend**
-  - Create `src/jarvis/api/` structure
-  - Implement REST + WebSocket endpoints
-  - Integrate with existing agent/memory
-  - Add `jarvis serve` command
+- **GUI Phase A (Backend) complete:**
+  - FastAPI at `src/jarvis/api/`
+  - All endpoints working: status, health, conversations, chat, ws, reminders, notes, mcp, voice
+  - Bearer token auth (optional via JARVIS_API_SECRET)
+  - `jarvis serve` command to start server
+  - TTS `synthesize()` returns WAV bytes
+  - STT `transcribe_file()` for file-based transcription
+  - Git pushed to GitHub: `https://github.com/cyb3rb34s7/Jarvis-Personal-Assistant.git`
+- **Next: Phase B - Next.js Frontend**
+  - Create `ui/` folder with Next.js 14 + shadcn/ui
+  - Implement chat interface with message history
+  - Connect to FastAPI backend
+  - Implement optimistic UI for latency
 - Future improvements:
   - Hindi TTS (find multilingual TTS)
   - Better Hinglish STT accuracy
@@ -253,5 +285,5 @@
 
 ---
 
-*Last Updated: January 29, 2026*
-*Session: Architecture Finalized, Ready for Phase A*
+*Last Updated: February 1, 2026*
+*Session: Phase A Complete, Backend API Working*

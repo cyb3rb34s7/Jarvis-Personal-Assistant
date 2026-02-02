@@ -10,7 +10,7 @@
 |--------|-------|
 | **Current Phase** | GUI Implementation - Phase A Complete |
 | **Phase Status** | 🟡 In Progress |
-| **Last Activity** | FastAPI backend complete, pushed to GitHub |
+| **Last Activity** | Voice mode stability fixes (model loading, MCP async) |
 | **Blockers** | None |
 | **Next Task** | Phase B - Next.js frontend |
 
@@ -111,6 +111,31 @@
 **Date Solved:** 2026-01-29
 **Lesson:** Kokoro has ~510 phoneme limit; handle long text gracefully
 
+### Problem: Models loaded lazily, bad voice UX
+**Solution:** Add preload methods, load all models at startup before user prompt
+**Date Solved:** 2026-02-02
+**Lesson:** Load LLM first (needs contiguous VRAM), then TTS, then STT
+
+### Problem: MCP tools fail with "StructuredTool does not support sync invocation"
+**Solution:** Use `run_agent_async()` with `loop.run_until_complete()` for MCP voice mode
+**Date Solved:** 2026-02-02
+**Lesson:** MCP tools are async-only; can't use sync agent with MCP tools
+
+### Problem: MCP fails with "Event loop is closed" on second query
+**Solution:** Use persistent event loop instead of `asyncio.run()` for MCP voice mode
+**Date Solved:** 2026-02-02
+**Lesson:** `asyncio.run()` closes loop; MCP connections are tied to the loop
+
+### Problem: MCP tool content is list, SQLite can't store
+**Solution:** Convert list to string with `"\n".join()` before saving
+**Date Solved:** 2026-02-02
+**Lesson:** Always serialize complex types before database storage
+
+### Problem: Emojis cause Windows encoding errors
+**Solution:** Replace emojis with ASCII equivalents in terminal output
+**Date Solved:** 2026-02-02
+**Lesson:** Windows console uses limited charset; avoid emojis in CLI apps
+
 <!-- Template:
 ### Problem: [Title]
 **Solution:** [What fixed it]
@@ -138,24 +163,14 @@
 
 ## Files Modified This Session
 
-*List files touched in current session (2026-02-01)*
+*List files touched in current session (2026-02-02)*
 
-- `src/jarvis/api/__init__.py` - **NEW** API module exports
-- `src/jarvis/api/main.py` - **NEW** FastAPI app with CORS, lifespan, routers
-- `src/jarvis/api/auth.py` - **NEW** Bearer token authentication
-- `src/jarvis/api/deps.py` - **NEW** Shared dependencies (agent, session)
-- `src/jarvis/api/routes/__init__.py` - **NEW** Route exports
-- `src/jarvis/api/routes/status.py` - **NEW** Health and status endpoints
-- `src/jarvis/api/routes/conversations.py` - **NEW** Conversation CRUD
-- `src/jarvis/api/routes/chat.py` - **NEW** Chat POST + WebSocket
-- `src/jarvis/api/routes/reminders.py` - **NEW** Reminders CRUD
-- `src/jarvis/api/routes/notes.py` - **NEW** Notes CRUD with search
-- `src/jarvis/api/routes/mcp.py` - **NEW** MCP server/tools management
-- `src/jarvis/api/routes/voice.py` - **NEW** STT/TTS endpoints
-- `pyproject.toml` - Added librosa to voice dependencies
-- `src/jarvis/cli.py` - Added `serve` command
-- `src/jarvis/voice/tts.py` - Added `synthesize()` method
-- `src/jarvis/voice/stt.py` - Added `transcribe_file()` and `get_stt()` methods
+- `src/jarvis/cli.py` - Model preloading, persistent event loop for MCP, loading order fix
+- `src/jarvis/voice/tts.py` - Added `preload()` method
+- `src/jarvis/voice/stt.py` - Added `preload_stt()` function
+- `src/jarvis/voice/__init__.py` - Export `preload_stt`
+- `src/jarvis/voice/audio.py` - Replace emojis with ASCII
+- `src/jarvis/agent/graph.py` - Convert MCP tool content to string for SQLite
 
 ---
 
@@ -256,34 +271,31 @@
 - Phase 1-5 complete - full voice loop + memory + MCP working!
 - STT: Whisper large-v3-turbo on GPU, Hinglish ~70-80%
 - TTS: Kokoro English-only, responses forced to English
-- Deep search (Exa) integrated via direct API
+- **Voice Mode Stability Fixes (2026-02-02):**
+  - Models preload at startup (LLM → TTS → STT order)
+  - MCP uses persistent event loop (fixes "Event loop is closed")
+  - MCP tool content converted to string (fixes SQLite error)
+  - Emojis replaced with ASCII (fixes Windows encoding)
 - **MCP Integration complete:**
   - `langchain-mcp-adapters` v0.2.1 installed
-  - JSON config file (`data/mcp_servers.json`) for easy MCP management
-  - Use `jarvis --mcp ask "query"` to enable MCP tools
+  - Use `jarvis --mcp --voice` for voice with MCP tools
+  - Exa tools working: web_search, code_search, company_research
 - **Memory System complete:**
   - SQLite database at `data/jarvis.db`
   - Safe sliding window (never splits tool call/response pairs)
-  - Use `jarvis chat` for interactive sessions with memory
 - **GUI Phase A (Backend) complete:**
   - FastAPI at `src/jarvis/api/`
-  - All endpoints working: status, health, conversations, chat, ws, reminders, notes, mcp, voice
-  - Bearer token auth (optional via JARVIS_API_SECRET)
+  - All endpoints working
   - `jarvis serve` command to start server
-  - TTS `synthesize()` returns WAV bytes
-  - STT `transcribe_file()` for file-based transcription
-  - Git pushed to GitHub: `https://github.com/cyb3rb34s7/Jarvis-Personal-Assistant.git`
 - **Next: Phase B - Next.js Frontend**
   - Create `ui/` folder with Next.js 14 + shadcn/ui
   - Implement chat interface with message history
   - Connect to FastAPI backend
-  - Implement optimistic UI for latency
 - Future improvements:
   - Hindi TTS (find multilingual TTS)
   - Better Hinglish STT accuracy
-  - Long-term memory (user facts extraction)
 
 ---
 
-*Last Updated: February 1, 2026*
-*Session: Phase A Complete, Backend API Working*
+*Last Updated: February 2, 2026*
+*Session: Voice Mode Stability Fixes*

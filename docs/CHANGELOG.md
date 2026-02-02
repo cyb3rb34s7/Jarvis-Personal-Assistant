@@ -4,6 +4,105 @@
 
 ---
 
+## 2026-02-02
+
+### Session: Voice Mode Stability Fixes
+
+#### Task: Fix Model Loading Experience
+**Time:** ~15 minutes
+**Status:** ✅ Complete
+
+**Problem:** Models loaded lazily on first use, causing:
+- Whisper loaded on first Ctrl+Space (user waits, then silence detected)
+- Kokoro loaded on first TTS (delay before audio)
+- Bad user experience
+
+**Solution:**
+1. Added `preload()` method to TTS class
+2. Added `preload_stt()` function for Whisper
+3. Load all models at voice mode startup with progress messages
+4. Changed loading order: LLM → TTS → STT (Ollama needs contiguous VRAM first)
+5. Added LLM warmup to force model into VRAM
+
+**Files modified:**
+- `src/jarvis/voice/tts.py` - Added `preload()` method
+- `src/jarvis/voice/stt.py` - Added `preload_stt()` function
+- `src/jarvis/voice/__init__.py` - Export `preload_stt`
+- `src/jarvis/cli.py` - Preload models at startup with progress
+
+---
+
+#### Task: Fix MCP "StructuredTool does not support sync invocation" Error
+**Time:** ~10 minutes
+**Status:** ✅ Complete
+
+**Problem:** MCP tools are async-only, but voice mode used sync `run_agent()`.
+
+**Solution:** Use `run_agent_async()` for MCP in voice handler.
+
+**Files modified:**
+- `src/jarvis/cli.py` - Use async for MCP in `handle_speech()`
+
+---
+
+#### Task: Fix MCP "Event loop is closed" Error
+**Time:** ~15 minutes
+**Status:** ✅ Complete
+
+**Problem:** `asyncio.run()` closes loop after each call, but MCP connections are tied to the loop. Second query fails.
+
+**Solution:** Use persistent event loop for all MCP operations:
+```python
+loop = asyncio.new_event_loop()
+agent = loop.run_until_complete(create_agent_async())
+response = loop.run_until_complete(run_agent_async(...))
+# Loop stays open until voice mode exits
+```
+
+**Files modified:**
+- `src/jarvis/cli.py` - Use persistent event loop for MCP voice mode
+
+---
+
+#### Task: Fix MCP Tool Content SQLite Storage Error
+**Time:** ~5 minutes
+**Status:** ✅ Complete
+
+**Problem:** MCP tools return content as list, SQLite can't store lists.
+Error: `type 'list' is not supported`
+
+**Solution:** Convert list content to string before saving:
+```python
+if isinstance(tool_content, list):
+    tool_content = "\n".join(str(item) for item in tool_content)
+```
+
+**Files modified:**
+- `src/jarvis/agent/graph.py` - Convert tool content in both sync and async versions
+
+---
+
+#### Task: Fix Windows Emoji Encoding Errors
+**Time:** ~5 minutes
+**Status:** ✅ Complete
+
+**Problem:** Emojis (🎤, 📝, ❌) caused `charmap codec can't encode` errors on Windows.
+
+**Solution:** Replace emojis with ASCII alternatives:
+- 🎤 → `[*]`
+- 📝 → `[>]`
+- ❌ → `[!]`
+- 🎙️ → `[Mic]`
+
+**Files modified:**
+- `src/jarvis/voice/audio.py` - Replace emojis with ASCII
+
+---
+
+**Git:** Committed and pushed: `Fix voice mode model loading and MCP async issues`
+
+---
+
 ## 2026-02-01
 
 ### Session: Phase A - FastAPI Backend Implementation

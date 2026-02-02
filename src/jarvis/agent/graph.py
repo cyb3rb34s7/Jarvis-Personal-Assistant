@@ -154,9 +154,16 @@ async def run_agent_async(
         # Save tool messages if any
         for msg in result.get("messages", []):
             if msg.type == "tool":
+                # MCP tools may return content as list, convert to string
+                tool_content = msg.content
+                if isinstance(tool_content, list):
+                    tool_content = "\n".join(str(item) for item in tool_content)
+                elif not isinstance(tool_content, str):
+                    tool_content = str(tool_content)
+
                 session.add_tool_message(
                     tool_name=getattr(msg, "name", "unknown"),
-                    content=msg.content,
+                    content=tool_content,
                     tool_call_id=getattr(msg, "tool_call_id", ""),
                 )
 
@@ -210,9 +217,16 @@ def run_agent(
         # Save tool messages if any
         for msg in result.get("messages", []):
             if msg.type == "tool":
+                # MCP tools may return content as list, convert to string
+                tool_content = msg.content
+                if isinstance(tool_content, list):
+                    tool_content = "\n".join(str(item) for item in tool_content)
+                elif not isinstance(tool_content, str):
+                    tool_content = str(tool_content)
+
                 session.add_tool_message(
                     tool_name=getattr(msg, "name", "unknown"),
-                    content=msg.content,
+                    content=tool_content,
                     tool_call_id=getattr(msg, "tool_call_id", ""),
                 )
 

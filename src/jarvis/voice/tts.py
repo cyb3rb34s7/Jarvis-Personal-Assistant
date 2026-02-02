@@ -115,6 +115,13 @@ class TextToSpeech:
         """Stop any ongoing speech."""
         sd.stop()
 
+    def preload(self) -> None:
+        """Pre-load the TTS model.
+
+        Call this at startup to avoid loading delay on first speak().
+        """
+        self._ensure_loaded()
+
     def synthesize(self, text: str, voice: str = None, speed: float = None) -> bytes:
         """Synthesize text to WAV audio bytes.
 

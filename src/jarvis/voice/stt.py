@@ -164,14 +164,6 @@ class SpeechRecognizer:
         return text
 
 
-def get_stt() -> SpeechRecognizer:
-    """Get or create the global speech recognizer.
-
-    Alias for get_recognizer() for API consistency.
-    """
-    return get_recognizer()
-
-
 # Global instance for convenience
 _recognizer: Optional[SpeechRecognizer] = None
 
@@ -182,6 +174,22 @@ def get_recognizer() -> SpeechRecognizer:
     if _recognizer is None:
         _recognizer = SpeechRecognizer()
     return _recognizer
+
+
+def get_stt() -> SpeechRecognizer:
+    """Get or create the global speech recognizer.
+
+    Alias for get_recognizer() for API consistency.
+    """
+    return get_recognizer()
+
+
+def preload_stt() -> SpeechRecognizer:
+    """Pre-load the STT model and return the recognizer.
+
+    Call this at startup to avoid loading delay on first transcription.
+    """
+    return get_recognizer()
 
 
 def transcribe(timeout: float = 10.0) -> str:

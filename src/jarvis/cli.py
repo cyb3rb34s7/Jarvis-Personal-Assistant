@@ -112,7 +112,7 @@ async def _run_query_async(query: str, model: str) -> str:
 def _run_voice_mode(model: str, use_mcp: bool = False, verbose: bool = False):
     """Run in voice input/output mode with session memory."""
     try:
-        from .voice import PushToTalk, get_tts
+        from .voice import PushToTalk, get_tts, preload_stt
     except ImportError as e:
         click.echo(f"Error: Voice dependencies not installed. Run: pip install jarvis[voice]")
         click.echo(f"Details: {e}")
@@ -123,19 +123,50 @@ def _run_voice_mode(model: str, use_mcp: bool = False, verbose: bool = False):
         click.echo("Error: Ollama is not running. Start it with: ollama serve")
         return
 
+    # For MCP, we need a persistent event loop (MCP connections are tied to the loop)
+    # asyncio.run() closes the loop after each call, breaking MCP connections
+    loop = None
+    if use_mcp:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     try:
-        # Create agent (with or without MCP)
+        click.echo("\n[Voice] Loading models (one-time startup)...")
+
+        # Load agent FIRST (Ollama needs contiguous VRAM, load before Whisper)
+        click.echo("  Loading LLM agent...")
         if use_mcp:
-            click.echo("[Voice] Loading agent with MCP tools...")
-            agent = asyncio.run(create_agent_async(model=model))
+            agent = loop.run_until_complete(create_agent_async(model=model))
         else:
             agent = create_agent(model=model)
 
+        # Warm up the LLM by sending a simple query
+        # This forces Ollama to actually load the model into VRAM
+        click.echo("  Warming up LLM...")
+        try:
+            if use_mcp:
+                _ = loop.run_until_complete(run_agent_async("Say OK", agent))
+            else:
+                _ = run_agent("Say OK", agent)
+        except Exception:
+            pass  # Ignore warmup errors
+        click.echo("  [OK] LLM ready")
+
+        # Pre-load TTS model (Kokoro on CPU) - takes 1-2 seconds
+        click.echo("  Loading Kokoro TTS model...")
         tts = get_tts()
+        tts.preload()
+        click.echo("  [OK] Kokoro TTS ready")
+
+        # Pre-load STT model (Whisper on GPU) - takes 3-5 seconds
+        # Load AFTER Ollama so GPU memory is properly allocated
+        click.echo("  Loading Whisper STT model...")
+        preload_stt()
+        click.echo("  [OK] Whisper STT ready")
 
         # Create session for voice mode (entire session shares context)
         session = SessionMemory()
-        click.echo(f"[Voice] Session: {session.conversation_id}")
+        click.echo(f"\n[Voice] All models loaded! Session: {session.conversation_id}")
 
     except Exception as e:
         error_msg = format_error_for_user(e)
@@ -143,6 +174,8 @@ def _run_voice_mode(model: str, use_mcp: bool = False, verbose: bool = False):
         if verbose:
             import traceback
             traceback.print_exc()
+        if loop:
+            loop.close()
         return
 
     def handle_speech(text: str):
@@ -157,7 +190,12 @@ def _run_voice_mode(model: str, use_mcp: bool = False, verbose: bool = False):
 
         try:
             # Run with session memory - JARVIS remembers the conversation
-            response = run_agent(text, agent, session=session)
+            # Use async version for MCP tools (they only support async invocation)
+            # Use the persistent event loop for MCP to keep connections alive
+            if use_mcp:
+                response = loop.run_until_complete(run_agent_async(text, agent, session=session))
+            else:
+                response = run_agent(text, agent, session=session)
             click.echo(f"\nJARVIS: {response}\n")
             tts.speak(response)
         except Exception as e:
@@ -188,6 +226,8 @@ def _run_voice_mode(model: str, use_mcp: bool = False, verbose: bool = False):
         click.echo(f"Error: {format_error_for_user(e)}")
     finally:
         ptt.stop()
+        if loop:
+            loop.close()
 
 
 @cli.command()

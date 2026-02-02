@@ -86,7 +86,7 @@ class PushToTalk:
         if not self._is_recording:
             self._is_recording = True
             self._stop_event.clear()
-            print("\n🎤 Listening... (release Ctrl+Space to stop)")
+            print("\n[*] Listening... (release Ctrl+Space to stop)")
 
             # Start recording in background thread
             threading.Thread(target=self._record_and_transcribe, daemon=True).start()
@@ -105,13 +105,13 @@ class PushToTalk:
             text = recognizer.listen_once(timeout=30.0, silence_timeout=1.5)
 
             if text:
-                print(f"📝 You said: {text}")
+                print(f"[>] You said: {text}")
                 self.on_speech(text)
             else:
-                print("❌ No speech detected")
+                print("[!] No speech detected")
 
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"[!] Error: {e}")
         finally:
             self._is_recording = False
 
@@ -123,7 +123,7 @@ class PushToTalk:
             on_release=self._on_hotkey_release
         )
         self._hotkey_listener.start()
-        print(f"🎙️ Voice mode active. Press {self.hotkey.replace('<', '').replace('>', '')} to speak.")
+        print(f"[Mic] Voice mode active. Press {self.hotkey.replace('<', '').replace('>', '')} to speak.")
 
     def stop(self):
         """Stop push-to-talk listener."""
